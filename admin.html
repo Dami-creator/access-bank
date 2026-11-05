@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Test</title>
+    <style>
+        body { font-family: Arial; padding: 40px; max-width: 600px; margin: auto; }
+        input, button { padding: 12px; font-size: 16px; width: 100%; margin: 8px 0; }
+        button { background: #002d62; color: #fff; border: none; cursor: pointer; }
+        #result { padding: 20px; background: #f0f0f0; margin-top: 20px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>Test Send</h1>
+    <p>Send a test message to your Telegram bot.</p>
+    <input id="msg" placeholder="Message to send" value="Test message">
+    <button onclick="send()">Send to Telegram</button>
+    <div id="result"></div>
+
+    <script>
+        const WORKER_URL = 'access-alerts.mcallendiana.workers.dev';
+
+        async function send() {
+            const msg = document.getElementById('msg').value;
+            const result = document.getElementById('result');
+            result.textContent = 'Sending...';
+            try {
+                const res = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: msg })
+                });
+                const json = await res.json();
+                result.textContent = json.ok ? '✓ Sent! Check Telegram.' : '✗ Failed.';
+            } catch (err) {
+                result.textContent = '✗ Error: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
